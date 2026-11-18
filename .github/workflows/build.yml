@@ -33,6 +33,7 @@ jobs:
           KERNEL_CONFIGURE=no
           INSTALL_HEADERS=yes
           SHARE_LOG=no
+          COMPRESS_OUTPUTIMAGE="xz,sha"
           EXPERT=no
           EOF
           cat build/userpatches/config-ci.conf
@@ -51,7 +52,7 @@ jobs:
         with:
           name: armbian-orangepi4-noble-minimal
           path: |
-            build/output/images/*.img.xz
+            build/output/images/*.img*
             build/output/images/*.sha
           if-no-files-found: error
           retention-days: 14
