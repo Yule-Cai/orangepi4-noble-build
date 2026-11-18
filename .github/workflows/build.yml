@@ -1,0 +1,57 @@
+name: build-armbian-noble-minimal
+on:
+  workflow_dispatch:
+    inputs:
+      board:   { description: 'board',   default: 'orangepi4', required: true }
+      release: { description: 'release', default: 'noble',     required: true }
+      branch:  { description: 'branch',  default: 'current',   required: true }
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL \
+                      /usr/local/share/boost /usr/local/lib/node_modules "$AGENT_TOOLSDIRECTORY" || true
+          sudo apt-get clean
+          df -h /
+
+      - name: Clone Armbian build framework
+        run: git clone --depth 1 https://github.com/armbian/build
+
+      - name: Configure target
+        run: |
+          mkdir -p build/userpatches
+          cat > build/userpatches/config-ci.conf <<'EOF'
+          BOARD=orangepi4
+          BRANCH=current
+          RELEASE=noble
+          BUILD_MINIMAL=yes
+          BUILD_DESKTOP=no
+          KERNEL_CONFIGURE=no
+          INSTALL_HEADERS=yes
+          SHARE_LOG=no
+          EXPERT=no
+          EOF
+          cat build/userpatches/config-ci.conf
+
+      - name: Build image
+        run: |
+          cd build
+          ./compile.sh ci
+
+      - name: Show output
+        if: always()
+        run: ls -lh build/output/images/ || true
+
+      - name: Upload image
+        uses: actions/upload-artifact@v4
+        with:
+          name: armbian-orangepi4-noble-minimal
+          path: |
+            build/output/images/*.img.xz
+            build/output/images/*.sha
+          if-no-files-found: error
+          retention-days: 14
